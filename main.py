@@ -48,14 +48,15 @@ class Robot:
            return
        
        for sensor in self.sensors:
-            print(f"Sensor found: {sensor}")
-            return
+              if sensor.sensor_id == sensor_id:
+                print(f"Sensor found: {sensor}")
+                return
        print(f"Sensor {sensor_id} was not found.")
 
 
-   def move(self):
+   def perform_task(self, task):
        """Moves the robot."""
-       print(f"{self.name} is moving.")
+       print(f"{self.name} is performing {task}.")
 
 
    def __str__(self):
@@ -65,26 +66,34 @@ class Robot:
 
 class MobileRobot(Robot):
    """Class for mobile robots."""
-   def __init__(self, robot_id, name, battery, status, speed):
+   def __init__(self, robot_id, name, battery, status, max_speed):
        super().__init__(robot_id, name, battery, status)
-       self.speed = speed
+       self.max_speed = max_speed
+       self.items = []  # List to hold items being delivered
 
 
-   def pick_up_object(self, object_name):
-       """Picks up an object."""
-       print(f"{object_name} is finished and is being shipped. {self.name} is picking up {object_name}.")
+   def perform_task(self, item_location):
+         """Moves the robot to a specified item location."""
+         print(f"{self.name} is moving to item at {item_location} with a speed of {self.max_speed}.")
+   
+   def pick_up_item(self, item_name):
+       """Picks up an item."""
+       self.items.append(item_name)
+       print(f"{self.name} is picking up {item_name}.")
 
-   def go_to_box(self, box_location):
-         """Moves the robot to a specified box location."""
-         print(f"{self.name} is moving to box at {box_location} with a speed of {self.speed}.")
-
-   def place_object(self, object_name):
-       """Places an object."""
-       print(f"{self.name} is placing {object_name} in the box. The box is ready to be shipped.")
+   def place_item(self, item_name):
+       """Places an item."""
+       if item_name in self.items:
+            self.items.remove(item_name)
+            print(f"{self.name} is placing {item_name} in the box.")
+            print("The box is ready to be shipped.")
+       else:
+           print(f"{item_name} is not currently being carried.")
 
 
    def __str__(self):
-       return f"{super().__str__()}, Wheel Count: {self.wheel_count} wheels."
+       """Displays the mobile robot's current status along with its maximum speed."""
+       return f"{super().__str__()}, Maximum Speed: {self.max_speed} mph."
 
 class DroneRobot(Robot):
    """Class for drone robots."""
@@ -92,16 +101,21 @@ class DroneRobot(Robot):
    def __init__(self, robot_id, name, battery, status, max_altitude):
        super().__init__(robot_id, name, battery, status)
        self.max_altitude = max_altitude
-       self.objects = []  # List to hold objects being delivered
-   
+       self.packages = []  # List to hold packages being delivered
+    
+   def pick_up_package(self, package_name):
+        """Picks up a package."""
+        self.packages.append(package_name)
+        print(f"{self.name} is picking up {package_name}.")
+
    def fly(self):
        """Makes the drone robot fly."""
-       print(f"{self.name} is flying with {len(self.objects)} objects. Maximum altitude of {self.max_altitude} feet.")
+       print(f"{self.name} is flying with {len(self.packages)} packages. Maximum altitude of {self.max_altitude} feet.")
     
-   def delivering_package(self, package):
+   def perform_task(self, package):
        """Delivers a package."""
        print(f"{self.name} is delivering {package}.")
-       self.objects.append(package)
+       
    
    def land(self):
        """Makes the drone robot land."""
@@ -109,25 +123,59 @@ class DroneRobot(Robot):
 
    def delivered_package(self, package):
        """Confirms that a package has been delivered."""
-       if package in self.objects:
-            self.objects.remove(package)
+       if package in self.packages:
+            self.packages.remove(package)
             print(f"{self.name} has delivered {package}.")
        else:
             print(f"{package} is not currently being carried.")
 
    def __str__(self):
+       """Displays the drone robot's current status along with its maximum altitude."""
        return f"{super().__str__()}, Maximum Altitude: {self.max_altitude} feet"
 
 
 def main():
    fleet = [] # List to hold all robots in the fleet
-   robot_1 = MobileRobot(robot_id = 'MB01', name = "RoboMover", battery = 80, status = "Idle", wheel_count = 4)
-   robot_2 = MobileRobot(robot_id = 'MB02', name = "RoboCarrier", battery = 70, status = "Active", wheel_count = 6)
-   robot_3 = DroneRobot(robot_id = 'DR01', name = "SkyDeliver", battery = 90, status = "Idle", max_altitude = 500)
-   fleet.extend([robot_1, robot_2, robot_3]) 
-   print("Fleet of Robots:")
-   for robot in fleet:
-       print(robot)
+   mobile_robot_1 = MobileRobot(robot_id = 'MB01', name = "RoboMover", battery = 80, status = "Idle", max_speed = 4)
+   mobile_robot_2 = MobileRobot(robot_id = 'MB02', name = "RoboCarrier", battery = 70, status = "Active", max_speed = 6)
+   drone_robot_1 = DroneRobot(robot_id = 'DR01', name = "SkyDeliver", battery = 90, status = "Idle", max_altitude = 500)
+   
+   sensor_1 = Sensor("S01", "Camera", "Vision")
+   sensor_2 = Sensor("S02", "Distance Sensor", "Proximity")
+   sensor_3 = Sensor("S03", "GPS", "Navigation")
+   
+   mobile_robot_1.add_sensor(sensor_1)
+   mobile_robot_1.add_sensor(sensor_2)
+   mobile_robot_2.add_sensor(sensor_1)
+   drone_robot_1.add_sensor(sensor_3)
+   
+   fleet.extend([mobile_robot_1, mobile_robot_2, drone_robot_1])
+   
+   item = input("Enter the item to be delivered: ")
+   item_location = input("Enter the location of the item in the warehouse: ")
+   destination = input("Enter the destination for delivery: ")
+   
+   mobile_robot_1.status = "Active"
+
+   mobile_robot_1.perform_task(item_location)
+   mobile_robot_1.pick_up_item(item)
+   mobile_robot_1.place_item(item)
+   
+   mobile_robot_1.status = "Idle"
+
+   package = item  # For simplicity, we treat the item as the package for delivery
+
+   drone_robot_1.status = "Active"
+
+   drone_robot_1.pick_up_package(package)
+   print(f"{drone_robot_1.name} is flying to {destination}.")
+   drone_robot_1.fly()
+   drone_robot_1.perform_task(package)
+   drone_robot_1.land()
+   drone_robot_1.delivered_package(package)
+   drone_robot_1.status = "Idle"
+   print(f"Your item {item} has been delivered to {destination} by {drone_robot_1.name}.")
+
 
 if __name__ == "__main__":
    main()
